@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { createWallet } from '@/core/offchain_server'
 
 interface WalletManagerProps {
   onWalletCreated: () => void
@@ -20,21 +21,17 @@ export default function WalletManager({ onWalletCreated }: WalletManagerProps) {
     setStep('downloading')
 
     try {
-      const response = await fetch('/api/wallet/create', {
-        method: 'POST',
-      })
+      const res = await createWallet();
+      console.log(res);
+          const byteData = res.data.byte_data;
 
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to create wallet')
-      }
-
-      const blob = await response.blob()
+    // Convert the string to a Blob
+    const blob = new Blob([byteData], { type: "text/plain" });
 
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = 'wallet-backup.ert'
+      link.download = 'credentials.ert'
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -94,7 +91,7 @@ export default function WalletManager({ onWalletCreated }: WalletManagerProps) {
               <div className="text-green-600 dark:text-green-400 font-semibold mb-2">Wallet Created Successfully!</div>
               <div className="text-green-600/80 dark:text-green-400/80 space-y-1 text-xs">
                 <p>Your wallet backup (.ert file) has been downloaded.</p>
-                <p className="font-semibold mt-2">Next steps:</p>
+                <p className="font-semibold mt-2">Neplete' ? 'Loading Dashboard...'xt steps:</p>
                 <ol className="list-decimal list-inside space-y-1 ml-2">
                   <li>Save the .ert file to a USB flash drive</li>
                   <li>Keep the USB drive in a safe location</li>
@@ -112,18 +109,12 @@ export default function WalletManager({ onWalletCreated }: WalletManagerProps) {
 
           <Button
             onClick={handleCreateWallet}
-            disabled={loading || step === 'complete'}
+            disabled={loading}
             size="lg"
             className="w-full h-12 text-base font-semibold transition-smooth"
           >
-            {loading ? 'Creating Wallet...' : step === 'complete' ? 'Loading Dashboard...' : 'Create New Wallet'}
+            {loading ? 'Creating Wallet...' : 'Create New Wallet'}
           </Button>
-
-          {step === 'complete' && (
-            <p className="text-xs text-muted-foreground text-center">
-              Dashboard will load automatically in a moment...
-            </p>
-          )}
         </div>
       </Card>
     </div>

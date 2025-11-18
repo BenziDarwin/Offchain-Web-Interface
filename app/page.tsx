@@ -8,12 +8,13 @@ import WalletManager from '@/components/wallet-manager'
 import SendCrypto from '@/components/send-crypto'
 import ReceiveCrypto from '@/components/receive-crypto'
 import { getAddressByIndex } from '@/core/offchain_server'
+import { useChain } from '@/provider/chain-provider'
 
 export default function Home() {
   const [walletDetected, setWalletDetected] = useState(false)
   const [checking, setChecking] = useState(true)
-  const [address, setAddress] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const {address, setAddress, ert, setErt} = useChain();
 
   const checkForExternalWallet = async () => {
     try {
@@ -21,8 +22,7 @@ export default function Home() {
       const data = await res.json()
 
       if (data.found) {
-        // Store the .ert file data in sessionStorage
-        sessionStorage.setItem('ert', JSON.stringify(data.wallet))
+        setErt(data.wallet);
         const walletRes = await getAddressByIndex(0, data.wallet);
 
         if (walletRes) {

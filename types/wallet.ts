@@ -11,3 +11,19 @@ export interface CreateWalletResponse {
 }
 
 export interface Wallets {success:boolean;data:WalletData[]}
+
+export interface Transaction {
+  id: string
+  transaction_type: 'eth' | 'token'
+  from_address: string
+  to_address: string
+  amount: string
+  token_address?: string
+  status: 'pending' | 'completed' | 'failed' | 'syncing'
+  created_at: string
+  synced_to_chain: boolean
+  tx_hash?: string
+  nonce?: number
+  gas_price?: string
+  gas_limit?: number
+}

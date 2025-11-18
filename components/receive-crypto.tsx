@@ -5,31 +5,28 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
+import { getAddressByIndex } from '@/core/offchain_server'
+import { useChain } from '@/provider/chain-provider'
 
 export default function ReceiveCrypto() {
-  const [address, setAddress] = useState('')
   const [qrCode, setQrCode] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const {address, setAddress} = useChain();
 
   useEffect(() => {
     const fetchAddress = async () => {
       try {
-        const response = await fetch('/api/wallet/address')
-        if (!response.ok) throw new Error('Failed to fetch address')
-        const data = await response.json()
-        setAddress(data.address)
-        
-        // Generate QR code
         const qrResponse = await fetch('/api/qr/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ data: data.address }),
+          body: JSON.stringify({ data: address }),
         })
         if (!qrResponse.ok) throw new Error('Failed to generate QR')
         const qrData = await qrResponse.json()
-        setQrCode(qrData.qr_code)
+        setQrCode(qrData.qr)
+
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error')
       } finally {

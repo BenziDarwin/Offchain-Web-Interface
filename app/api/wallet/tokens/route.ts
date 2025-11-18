@@ -11,23 +11,29 @@ const ERC20_ABI = [
 
 const POPULAR_TOKENS = {
   mainnet: [
-    { address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', symbol: 'USDC' },
-    { address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', symbol: 'USDT' },
-    { address: '0x6B175474E89094C44Da98b954EedeAC495271d0F', symbol: 'DAI' },
+    { address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' }, // USDC
+    { address: '0xdAC17F958D2ee523a2206206994597C13D831ec7' }, // USDT
+    { address: '0x6B175474E89094C44Da98b954EedeAC495271d0F' }, // DAI
   ],
   sepolia: [
-    { address: '0xf08A50178dfcDE18524ATA7364dc53f0e7B7b8f1', symbol: 'USDC' },
+    { address: '0xf08A50178dfcDE18524ATA7364dc53f0e7B7b8f1' },
   ],
   polygon: [
-    { address: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', symbol: 'USDC' },
-    { address: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', symbol: 'USDT' },
+    { address: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174' }, // USDC
+    { address: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F' }, // USDT
   ],
+  ganache: [
+    { address: '0xf89Cb6B4509D1A0089bb543fe7051C06b66d6890' },
+  ],
+  arbitrum: [],
+  optimism: [],
 }
 
 const CHAINS = {
   mainnet: 'https://eth-mainnet.g.alchemy.com/v2/demo',
   sepolia: 'https://eth-sepolia.g.alchemy.com/v2/demo',
   polygon: 'https://polygon-rpc.com',
+  ganache: 'http://localhost:7545',
   arbitrum: 'https://arb1.arbitrum.io/rpc',
   optimism: 'https://mainnet.optimism.io',
 }
@@ -39,60 +45,66 @@ export async function GET(request: Request) {
     const chain = (searchParams.get('chain') || 'mainnet') as keyof typeof CHAINS
 
     if (!address) {
-      return NextResponse.json(
-        { error: 'Address parameter required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Address parameter required' }, { status: 400 })
     }
 
     const rpcUrl = CHAINS[chain]
     if (!rpcUrl) {
-      return NextResponse.json(
-        { error: 'Invalid chain' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Invalid chain' }, { status: 400 })
     }
 
     const provider = new ethers.JsonRpcProvider(rpcUrl)
-    const tokens = POPULAR_TOKENS[chain as keyof typeof POPULAR_TOKENS] || []
+    const tokens = POPULAR_TOKENS[chain] || []
 
     const tokenBalances = await Promise.all(
       tokens.map(async (token) => {
         try {
           const contract = new ethers.Contract(token.address, ERC20_ABI, provider)
-          const [balance, decimals, name] = await Promise.all([
+
+          const [balance, decimals, symbol, name] = await Promise.all([
             contract.balanceOf(address),
             contract.decimals(),
+            contract.symbol(),
             contract.name(),
           ])
-          
-          const formattedBalance = ethers.formatUnits(balance, decimals)
-          
+
+          // Convert BigInt values to numbers/strings explicitly
+          const decimalsNumber = Number(decimals)
+          const formattedBalance = ethers.formatUnits(balance, decimalsNumber)
+
           return {
             address: token.address,
-            symbol: token.symbol,
-            name,
+            symbol: String(symbol),
+            name: String(name),
             balance: formattedBalance,
-            decimals,
+            decimals: decimalsNumber,
           }
-        } catch (err) {
+        } catch (error) {
+          console.error(`Error fetching token ${token.address}:`, error)
           return {
             address: token.address,
-            symbol: token.symbol,
             balance: '0',
-            error: 'Failed to fetch',
+            decimals: 0,
+            symbol: 'Unknown',
+            name: 'Unknown Token',
+            error: 'Failed to fetch token data',
           }
         }
       })
     )
 
+    // Filter out tokens with zero balance (optional)
+    const nonZeroTokens = tokenBalances.filter(token => 
+      parseFloat(token.balance) > 0
+    )
+
     return NextResponse.json({
-      tokens: tokenBalances.filter((t) => parseFloat(t.balance) > 0 || t.error),
+      tokens: nonZeroTokens.length > 0 ? nonZeroTokens : tokenBalances,
     })
   } catch (error) {
     console.error('Token balance error:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch token balances' },
+      { error: 'Failed to fetch token balances' }, 
       { status: 500 }
     )
   }

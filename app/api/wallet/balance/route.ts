@@ -27,7 +27,13 @@ const CHAINS = {
     name: 'Optimism',
     rpc: 'https://mainnet.optimism.io',
   },
+  ganache: {
+    id: 1337,
+    name: 'Ganache Local',
+    rpc: 'http://127.0.0.1:7545',
+  },
 }
+
 
 export async function GET(request: Request) {
   try {

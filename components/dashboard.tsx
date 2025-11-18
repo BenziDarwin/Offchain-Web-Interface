@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ChevronDown } from 'lucide-react'
+import { useChain } from '@/provider/chain-provider'
 
 interface Balance {
   eth: string
@@ -27,6 +28,7 @@ const CHAIN_OPTIONS = [
   { value: 'polygon', label: 'Polygon' },
   { value: 'arbitrum', label: 'Arbitrum' },
   { value: 'optimism', label: 'Optimism' },
+  { value: 'ganache', label: 'Ganache Local' },
 ]
 
 export default function Dashboard({ address }: { address: string }) {
@@ -34,40 +36,42 @@ export default function Dashboard({ address }: { address: string }) {
   const [tokens, setTokens] = useState<Token[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [chain, setChain] = useState('mainnet')
+  const {chain, setChain} = useChain();
   const [showChainMenu, setShowChainMenu] = useState(false)
 
   useEffect(() => {
-    const fetchBalances = async () => {
-      try {
-        setLoading(true)
-        setError(null)
+  if (!address || !chain) return;
 
-        const balanceRes = await fetch(
-          `/api/wallet/balance?address=${address}&chain=${chain}`
-        )
-        if (!balanceRes.ok) throw new Error('Failed to fetch balance')
-        const balanceData = await balanceRes.json()
-        setBalance(balanceData)
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-        const tokensRes = await fetch(
-          `/api/wallet/tokens?address=${address}&chain=${chain}`
-        )
-        if (tokensRes.ok) {
-          const tokensData = await tokensRes.json()
-          setTokens(tokensData.tokens)
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error')
-      } finally {
-        setLoading(false)
-      }
+      const res = await fetch(`/api/wallet/balance?address=${address}&chain=${chain}`);
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || "Failed to load balance");
+
+      setBalance({
+        eth: data.eth,
+        usd: data.usd,
+        chain: data.chain,
+        chainId: data.chainId,
+      });
+
+      const chainRes = await fetch(`/api/wallet/tokens?address=${address}&chain=${chain}`);
+       const chainData = await chainRes.json();
+      setTokens(chainData.tokens);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    fetchBalances()
-    const interval = setInterval(fetchBalances, 30000) // Refresh every 30 seconds
-    return () => clearInterval(interval)
-  }, [address, chain])
+  fetchData();
+}, [address, chain]);
+
 
   return (
     <div className="grid gap-4">

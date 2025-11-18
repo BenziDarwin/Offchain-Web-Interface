@@ -1,14 +1,6 @@
-import { CreateWalletResponse, Wallet, Wallets } from "@/types/wallet";
+import { CreateWalletResponse, Transaction, Wallet, Wallets } from "@/types/wallet";
 import { AxiosInstance } from "./baseURL";
-
-export interface Transaction {
-  id: string;
-  from: string;
-  to: string;
-  amount: number;
-  token?: string;
-  status: string;
-}
+import { AxiosResponse } from "axios";
 
 // Health check
 export const getHealth = async (): Promise<{ success: string, data:string }> => {
@@ -24,10 +16,10 @@ export const getHealth = async (): Promise<{ success: string, data:string }> => 
 // Create HD wallet
 export const createWallet = async (): Promise<CreateWalletResponse> => {
   try {
-    const response:CreateWalletResponse = await AxiosInstance.post("/api/wallets",{});
+    const response:AxiosResponse<CreateWalletResponse> = await AxiosInstance.post("/api/wallets",{});
     // Optionally store the wallet in sessionStorage
-    sessionStorage.setItem("ert", JSON.stringify(response.data.byte_data));
-    return response;
+    sessionStorage.setItem("ert", JSON.stringify(response.data.data.byte_data));
+    return response.data;
   } catch (error: any) {
     console.error("Failed to create wallet:", error);
     throw new Error("Failed to create wallet");
@@ -48,8 +40,8 @@ export const getWalletAddresses = async (credentials:string): Promise<Wallets[]>
 // Get address by index
 export const getAddressByIndex = async (index: number, credentials: string): Promise<Wallet> => {
   try {
-    const response: Wallet = await AxiosInstance.get(`/api/wallets/addresses/by-index?index=${index}`, {headers:{Authorization:`Bearer ${credentials}`}});
-    return response;
+    const response: AxiosResponse<Wallet> = await AxiosInstance.get(`/api/wallets/addresses/by-index?index=${index}`, {headers:{Authorization:`Bearer ${credentials}`}});
+    return response.data;
   } catch (error: any) {
     console.error(`Failed to get address at index ${index}:`, error);
     throw new Error(`Failed to get address at index ${index}`);
@@ -57,24 +49,64 @@ export const getAddressByIndex = async (index: number, credentials: string): Pro
 };
 
 // Send ETH
-export const sendETH = async (to: string, amount: number): Promise<Transaction> => {
+export const sendETH = async (
+  toAddress: string, 
+  amount: string, 
+  credentials: string
+): Promise<Transaction> => {
   try {
-    const response = await AxiosInstance.post("/api/transactions/eth", { to, amount });
-    return response.data;
+    const response = await AxiosInstance.post(
+      "/api/transactions/eth", 
+      { 
+        to_address: toAddress,  // Match backend field name
+        amount: amount,
+        from_index: 0  // Default to first address, make configurable if needed
+      }, 
+      {
+        headers: { 
+          Authorization: `Bearer ${credentials}` 
+        }
+      }
+    );
+    
+    // Backend wraps response in ApiResponse structure
+    return response.data.data;
   } catch (error: any) {
     console.error("Failed to send ETH:", error);
-    throw new Error("Failed to send ETH");
+    const errorMsg = error.response?.data?.message || "Failed to send ETH";
+    throw new Error(errorMsg);
   }
 };
 
 // Send ERC20 token
-export const sendToken = async (to: string, amount: number, token: string): Promise<Transaction> => {
+export const sendToken = async (
+  toAddress: string, 
+  amount: string, 
+  tokenAddress: string, 
+  credentials: string
+): Promise<Transaction> => {
   try {
-    const response = await AxiosInstance.post("/api/transactions/token", { to, amount, token });
-    return response.data;
+    const response = await AxiosInstance.post(
+      "/api/transactions/token", 
+      { 
+        to_address: toAddress,  // Match backend field name
+        amount: amount,
+        token_address: tokenAddress,  // Match backend field name
+        from_index: 0  // Default to first address, make configurable if needed
+      }, 
+      {
+        headers: { 
+          Authorization: `Bearer ${credentials}` 
+        }
+      }
+    );
+    
+    // Backend wraps response in ApiResponse structure
+    return response.data.data;
   } catch (error: any) {
     console.error("Failed to send token:", error);
-    throw new Error("Failed to send token");
+    const errorMsg = error.response?.data?.message || "Failed to send token";
+    throw new Error(errorMsg);
   }
 };
 
@@ -82,9 +114,12 @@ export const sendToken = async (to: string, amount: number, token: string): Prom
 export const getTransactions = async (): Promise<Transaction[]> => {
   try {
     const response = await AxiosInstance.get("/api/transactions");
-    return response.data;
+    
+    // Backend wraps response in ApiResponse structure
+    return response.data.data;
   } catch (error: any) {
     console.error("Failed to get transactions:", error);
-    throw new Error("Failed to get transactions");
+    const errorMsg = error.response?.data?.message || "Failed to get transactions";
+    throw new Error(errorMsg);
   }
 };
