@@ -26,8 +26,7 @@ const CHAIN_OPTIONS = [
   { value: 'mainnet', label: 'Ethereum Mainnet' },
   { value: 'sepolia', label: 'Sepolia Testnet' },
   { value: 'polygon', label: 'Polygon' },
-  { value: 'arbitrum', label: 'Arbitrum' },
-  { value: 'optimism', label: 'Optimism' },
+  { value: 'tron', label: 'Tron' },
   { value: 'ganache', label: 'Ganache Local' },
 ]
 
