@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 
 export async function GET() {
   try {
-    const response = await fetch('http://127.0.0.1:7671/api/wallets/addresses', {
+    const response = await fetch('http://84.247.167.128/api/wallets/addresses', {
       headers: { 'Content-Type': 'application/json' },
     })
 

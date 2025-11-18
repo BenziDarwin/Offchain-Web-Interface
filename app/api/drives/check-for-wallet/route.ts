@@ -7,7 +7,7 @@ export async function GET() {
     // 4. Return the wallet data
 
     // For now, we'll simulate by checking if the wallet exists in the backend
-    const response = await fetch('http://127.0.0.1:7671/api/wallets/addresses');
+    const response = await fetch('http://84.247.167.128/api/wallets/addresses');
 
     if (response.ok) {
       // In production, read the actual .ert file from the drive
