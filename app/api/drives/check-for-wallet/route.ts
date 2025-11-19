@@ -7,23 +7,25 @@ export async function GET() {
     // 4. Return the wallet data
 
     // For now, we'll simulate by checking if the wallet exists in the backend
-    const response = await fetch(`${process.env.BASE_URL}/api/wallets/addresses`);
+    const response = await fetch(
+      `${process.env.BASE_URL}/api/wallets/addresses`,
+    );
 
     if (response.ok) {
       // In production, read the actual .ert file from the drive
       // and return its contents
-      const data = await response.json()
-      return Response.json({ 
+      const data = await response.json();
+      return Response.json({
         found: true,
-        walletData: data
+        walletData: data,
       });
     }
 
     return Response.json({ found: false });
   } catch (error) {
-    return Response.json({ 
-      found: false, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    return Response.json({
+      found: false,
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 }

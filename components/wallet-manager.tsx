@@ -1,59 +1,65 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { createWallet } from '@/core/offchain_server'
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { createWallet } from "@/core/offchain_server";
 
 interface WalletManagerProps {
-  onWalletCreated: () => void
+  onWalletCreated: () => void;
 }
 
 export default function WalletManager({ onWalletCreated }: WalletManagerProps) {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
-  const [step, setStep] = useState<'initial' | 'downloading' | 'complete'>('initial')
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [step, setStep] = useState<"initial" | "downloading" | "complete">(
+    "initial",
+  );
 
   const handleCreateWallet = async () => {
-    setLoading(true)
-    setError(null)
-    setStep('downloading')
+    setLoading(true);
+    setError(null);
+    setStep("downloading");
 
     try {
       const res = await createWallet();
       console.log(res);
-          const byteData = res.data.byte_data;
+      const byteData = res.data.byte_data;
 
-    // Convert the string to a Blob
-    const blob = new Blob([byteData], { type: "text/plain" });
+      // Convert the string to a Blob
+      const blob = new Blob([byteData], { type: "text/plain" });
 
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = 'credentials.ert'
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "credentials.ert";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
 
-      setStep('complete')
-      setSuccess(true)
+      setStep("complete");
+      setSuccess(true);
 
-      setTimeout(() => onWalletCreated(), 2500)
+      setTimeout(() => onWalletCreated(), 2500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-      setStep('initial')
+      setError(err instanceof Error ? err.message : "Unknown error");
+      setStep("initial");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="grid gap-8 max-w-2xl mx-auto py-12">
       <div className="text-center">
-        <h2 className="text-3xl font-bold tracking-tight mb-2">Welcome to Base Zero</h2>
-        <p className="text-muted-foreground">Create your secure self-custody wallet to get started</p>
+        <h2 className="text-3xl font-bold tracking-tight mb-2">
+          Welcome to Base Zero
+        </h2>
+        <p className="text-muted-foreground">
+          Create your secure self-custody wallet to get started
+        </p>
       </div>
 
       <Card className="p-8 border-border/40 backdrop-blur-sm">
@@ -63,7 +69,10 @@ export default function WalletManager({ onWalletCreated }: WalletManagerProps) {
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex gap-3">
                 <span className="text-foreground font-bold">•</span>
-                <span>Non-custodial HD wallet with full control over your private keys</span>
+                <span>
+                  Non-custodial HD wallet with full control over your private
+                  keys
+                </span>
               </li>
               <li className="flex gap-3">
                 <span className="text-foreground font-bold">•</span>
@@ -86,12 +95,16 @@ export default function WalletManager({ onWalletCreated }: WalletManagerProps) {
             </div>
           )}
 
-          {step === 'complete' && success && (
+          {step === "complete" && success && (
             <div className="bg-green-500/10 border border-green-500/50 rounded-lg p-4 text-sm">
-              <div className="text-green-600 dark:text-green-400 font-semibold mb-2">Wallet Created Successfully!</div>
+              <div className="text-green-600 dark:text-green-400 font-semibold mb-2">
+                Wallet Created Successfully!
+              </div>
               <div className="text-green-600/80 dark:text-green-400/80 space-y-1 text-xs">
                 <p>Your wallet backup (.ert file) has been downloaded.</p>
-                <p className="font-semibold mt-2">Neplete' ? 'Loading Dashboard...'xt steps:</p>
+                <p className="font-semibold mt-2">
+                  Neplete' ? 'Loading Dashboard...'xt steps:
+                </p>
                 <ol className="list-decimal list-inside space-y-1 ml-2">
                   <li>Save the .ert file to a USB flash drive</li>
                   <li>Keep the USB drive in a safe location</li>
@@ -101,7 +114,7 @@ export default function WalletManager({ onWalletCreated }: WalletManagerProps) {
             </div>
           )}
 
-          {step === 'downloading' && (
+          {step === "downloading" && (
             <div className="bg-blue-500/10 border border-blue-500/50 rounded-lg p-4 text-sm text-blue-600 dark:text-blue-400">
               Generating and downloading your secure wallet backup...
             </div>
@@ -113,10 +126,10 @@ export default function WalletManager({ onWalletCreated }: WalletManagerProps) {
             size="lg"
             className="w-full h-12 text-base font-semibold transition-smooth"
           >
-            {loading ? 'Creating Wallet...' : 'Create New Wallet'}
+            {loading ? "Creating Wallet..." : "Create New Wallet"}
           </Button>
         </div>
       </Card>
     </div>
-  )
+  );
 }

@@ -1,26 +1,29 @@
-import { NextResponse } from 'next/server'
+import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    const response = await fetch(`${process.env.BASE_URL}/api/wallets/addresses`, {
-      headers: { 'Content-Type': 'application/json' },
-    })
+    const response = await fetch(
+      `${process.env.BASE_URL}/api/wallets/addresses`,
+      {
+        headers: { "Content-Type": "application/json" },
+      },
+    );
 
     if (!response.ok) {
       return NextResponse.json(
-        { error: 'Failed to fetch address' },
-        { status: response.status }
-      )
+        { error: "Failed to fetch address" },
+        { status: response.status },
+      );
     }
 
-    const data = await response.json()
+    const data = await response.json();
     return NextResponse.json({
-      address: data[0] || '0x0000000000000000000000000000000000000000',
-    })
+      address: data[0] || "0x0000000000000000000000000000000000000000",
+    });
   } catch (error) {
     return NextResponse.json(
-      { error: 'Failed to fetch address' },
-      { status: 500 }
-    )
+      { error: "Failed to fetch address" },
+      { status: 500 },
+    );
   }
 }
