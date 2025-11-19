@@ -2,7 +2,7 @@ const { spawn } = require("child_process");
 
 console.log("Starting USB agent (python ./usb/usb_agent.py)...");
 
-const python = spawn("python", ["./usb/usb_agent.py"], {
+const python = spawn("py", ["./usb/usb_agent.py"], {
   stdio: "inherit",
 });
 

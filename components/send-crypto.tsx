@@ -5,11 +5,19 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { sendETH, sendToken, getTransactions } from '@/core/offchain_server'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Transaction } from '@/types/wallet'
 import { useChain } from '@/provider/chain-provider'
-import { parseUnits } from 'ethers'
+import { formatUnits, parseUnits } from 'ethers'
+import { getTokensByNetwork, POPULAR_TOKENS, type NetworkKey } from '@/utils/constants'
 
 export default function SendCrypto() {
   const [toAddress, setToAddress] = useState('')
@@ -20,12 +28,17 @@ export default function SendCrypto() {
   const [success, setSuccess] = useState(false)
   const [txId, setTxId] = useState('')
   const [isTokenTransfer, setIsTokenTransfer] = useState(false)
-  const {ert}= useChain();
+  const {ert, chain, setChain} = useChain();
+
+  const [availableTokens, setAvailableTokens] = useState(getTokensByNetwork(chain as NetworkKey))
   
   // Transaction list state
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loadingTxs, setLoadingTxs] = useState(false)
   const [txError, setTxError] = useState<string | null>(null)
+  
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 5
 
   // Get credentials from localStorage or your auth system
   const getCredentials = () => {
@@ -41,12 +54,19 @@ export default function SendCrypto() {
     loadTransactions()
   }, [])
 
+  const handleNetworkChange = (newNetwork: NetworkKey) => {
+    setChain(newNetwork)
+    setAvailableTokens(getTokensByNetwork(newNetwork))
+    setTokenAddress('')
+  }
+
   const loadTransactions = async () => {
     setLoadingTxs(true)
     setTxError(null)
     try {
       const txs = await getTransactions()
       setTransactions(txs)
+      setCurrentPage(1)
     } catch (err) {
       setTxError(err instanceof Error ? err.message : 'Failed to load transactions')
     } finally {
@@ -69,7 +89,6 @@ export default function SendCrypto() {
       setToAddress('')
       setAmount('')
       
-      // Refresh transaction list
       await loadTransactions()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
@@ -87,7 +106,7 @@ export default function SendCrypto() {
     try {
       const credentials = getCredentials()
       const rawAmount = parseUnits(amount, 18).toString()
-  const transaction = await sendToken(toAddress, rawAmount, tokenAddress, credentials)
+      const transaction = await sendToken(toAddress, rawAmount, tokenAddress, credentials)
       
       setTxId(transaction.id)
       setSuccess(true)
@@ -95,7 +114,6 @@ export default function SendCrypto() {
       setAmount('')
       setTokenAddress('')
       
-      // Refresh transaction list
       await loadTransactions()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
@@ -126,6 +144,14 @@ export default function SendCrypto() {
     return new Date(dateString).toLocaleString()
   }
 
+  const sortedTransactions = [...transactions].sort((a, b) => {
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  })
+
+  const totalPages = Math.ceil(sortedTransactions.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const paginatedTransactions = sortedTransactions.slice(startIndex, startIndex + itemsPerPage)
+
   return (
     <div className="grid gap-8 max-w-6xl w-full">
       {/* Send Form */}
@@ -155,20 +181,57 @@ export default function SendCrypto() {
 
         <form onSubmit={isTokenTransfer ? handleSendToken : handleSendETH} className="space-y-6">
           {isTokenTransfer && (
-            <div>
-              <Label htmlFor="token" className="text-sm font-medium mb-2 block">
-                Token Contract Address
-              </Label>
-              <Input
-                id="token"
-                placeholder="0x..."
-                value={tokenAddress}
-                onChange={(e) => setTokenAddress(e.target.value)}
-                disabled={loading}
-                required
-                className="transition-smooth"
-              />
-            </div>
+            <>
+              <div>
+                <Label htmlFor="network" className="text-sm font-medium mb-2 block">
+                  Network
+                </Label>
+                <Select value={chain} onValueChange={(value) => handleNetworkChange(value as NetworkKey)}>
+                  <SelectTrigger id="network">
+                    <SelectValue placeholder="Select a network" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(POPULAR_TOKENS).map((net) => (
+                      <SelectItem key={net} value={net}>
+                        {net.charAt(0).toUpperCase() + net.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="token" className="text-sm font-medium mb-2 block">
+                  Token
+                </Label>
+                {availableTokens.length > 0 ? (
+                  <Select value={tokenAddress} onValueChange={setTokenAddress}>
+                    <SelectTrigger id="token">
+                      <SelectValue placeholder="Select a token" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableTokens.map((token) => (
+                        <SelectItem key={token.address} value={token.address}>
+                          {token.symbol} ({formatAddress(token.address)})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="text-sm text-muted-foreground p-3 border border-border/40 rounded-md">
+                    No popular tokens available for this network. Enter address manually:
+                  </div>
+                )}
+                <Input
+                  id="token-manual"
+                  placeholder="Or paste token address (0x...)"
+                  value={tokenAddress}
+                  onChange={(e) => setTokenAddress(e.target.value)}
+                  disabled={loading}
+                  className="transition-smooth mt-2"
+                />
+              </div>
+            </>
           )}
 
           <div>
@@ -253,67 +316,97 @@ export default function SendCrypto() {
             No transactions yet
           </div>
         ) : (
-          <div className="space-y-4">
-            {transactions.map((tx) => (
-              <div
-                key={tx.id}
-                className="border border-border/40 rounded-lg p-4 hover:bg-accent/5 transition-smooth"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm uppercase">
-                        {tx.transaction_type === 'eth' ? 'ETH' : 'Token'}
-                      </span>
-                      <span className={`text-xs px-2 py-1 rounded-full border ${getStatusColor(tx.status)}`}>
-                        {tx.status}
-                      </span>
-                      {tx.synced_to_chain && (
-                        <span className="text-xs px-2 py-1 rounded-full border border-purple-500/50 bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                          On-chain
+          <>
+            <div className="space-y-4 mb-6">
+              {paginatedTransactions.map((tx) => (
+                <div
+                  key={tx.id}
+                  className="border border-border/40 rounded-lg p-4 hover:bg-accent/5 transition-smooth"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-sm uppercase">
+                          {tx.transaction_type === 'eth' ? 'ETH' : 'Token'}
                         </span>
-                      )}
-                    </div>
+                        <span className={`text-xs px-2 py-1 rounded-full border ${getStatusColor(tx.status)}`}>
+                          {tx.status}
+                        </span>
+                        {tx.synced_to_chain && (
+                          <span className="text-xs px-2 py-1 rounded-full border border-purple-500/50 bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                            On-chain
+                          </span>
+                        )}
+                      </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">From:</span>
-                        <p className="font-mono">{formatAddress(tx.from_address)}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">To:</span>
-                        <p className="font-mono">{formatAddress(tx.to_address)}</p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Amount:</span>
-                        <p className="font-semibold">{tx.amount}</p>
-                      </div>
-                      {tx.token_address && (
+                      <div className="grid grid-cols-2 gap-2 text-sm">
                         <div>
-                          <span className="text-muted-foreground">Token:</span>
-                          <p className="font-mono text-xs">{formatAddress(tx.token_address)}</p>
+                          <span className="text-muted-foreground">From:</span>
+                          <p className="font-mono">{formatAddress(tx.from_address)}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">To:</span>
+                          <p className="font-mono">{formatAddress(tx.to_address)}</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Amount:</span>
+                          <p className="font-semibold">{tx.token_address? formatUnits(tx.amount, 18): tx.amount}</p>
+                        </div>
+                        {tx.token_address && (
+                          <div>
+                            <span className="text-muted-foreground">Token:</span>
+                            <p className="font-mono text-xs">{formatAddress(tx.token_address)}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {tx.tx_hash && (
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Tx Hash:</span>
+                          <p className="font-mono text-xs break-all">{tx.tx_hash}</p>
                         </div>
                       )}
-                    </div>
 
-                    {tx.tx_hash && (
-                      <div className="text-sm">
-                        <span className="text-muted-foreground">Tx Hash:</span>
-                        <p className="font-mono text-xs break-all">{tx.tx_hash}</p>
+                      <div className="text-xs text-muted-foreground">
+                        {formatDate(tx.created_at)}
                       </div>
-                    )}
-
-                    <div className="text-xs text-muted-foreground">
-                      {formatDate(tx.created_at)}
                     </div>
                   </div>
                 </div>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-between border-t border-border/40 pt-4">
+              <div className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages} ({sortedTransactions.length} total)
               </div>
-            ))}
-          </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                <Button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </>
         )}
       </Card>
     </div>

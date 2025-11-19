@@ -1,42 +1,6 @@
 import { NextResponse } from 'next/server'
 import { ethers } from 'ethers'
-
-// Common token ABIs for balance checking
-const ERC20_ABI = [
-  'function balanceOf(address owner) view returns (uint256)',
-  'function decimals() view returns (uint8)',
-  'function symbol() view returns (string)',
-  'function name() view returns (string)',
-]
-
-const POPULAR_TOKENS = {
-  mainnet: [
-    { address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' }, // USDC
-    { address: '0xdAC17F958D2ee523a2206206994597C13D831ec7' }, // USDT
-    { address: '0x6B175474E89094C44Da98b954EedeAC495271d0F' }, // DAI
-  ],
-  sepolia: [
-    { address: '0xf08A50178dfcDE18524ATA7364dc53f0e7B7b8f1' },
-  ],
-  polygon: [
-    { address: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174' }, // USDC
-    { address: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F' }, // USDT
-  ],
-  ganache: [
-    { address: '0xf89Cb6B4509D1A0089bb543fe7051C06b66d6890' },
-  ],
-  arbitrum: [],
-  optimism: [],
-}
-
-const CHAINS = {
-  mainnet: 'https://eth-mainnet.g.alchemy.com/v2/demo',
-  sepolia: 'https://eth-sepolia.g.alchemy.com/v2/demo',
-  polygon: 'https://polygon-rpc.com',
-  ganache: 'http://localhost:7545',
-  arbitrum: 'https://arb1.arbitrum.io/rpc',
-  optimism: 'https://mainnet.optimism.io',
-}
+import { CHAINS, ERC20_ABI, POPULAR_TOKENS } from '@/utils/constants'
 
 export async function GET(request: Request) {
   try {
